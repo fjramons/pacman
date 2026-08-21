@@ -116,6 +116,8 @@ Full reference: [`k8s/all-in-one/README.md`](k8s/all-in-one/README.md).
 
 `k8s/gateway-api/` documents an optional next step for exposing the app through Gateway API instead of the current `Service type=LoadBalancer`.
 
+**Kustomize alternative**: both variants above are also available parametrized with Kustomize generators/transformers instead of `envsubst`, see [`k8s/kustomize/README.md`](k8s/kustomize/README.md).
+
 Testing this locally (without access to a real provisioned cluster/database) means standing up two `kind` clusters: one for the app, one simulating an externally provisioned PostgreSQL, reachable from the other over their shared Docker network. That walkthrough is workspace-specific setup, not part of this repo.
 
 ## Local Development
@@ -186,12 +188,10 @@ Environment variables control the session behaviour:
 
 ## Continuous Integration & Releases
 
-GitHub Actions workflows live in `.github/workflows`:
+GitHub Actions workflows live in `.github/workflows`, cleanly separated by trigger: a commit runs CI, a version tag publishes a release. Full details in [`.github/workflows/README.md`](.github/workflows/README.md).
 
-- `ci.yml` runs lint ➝ tests (Node 18/20 matrix) ➝ build on pushes to `master` or `modernize`, and on pull requests.
-- `release.yml` triggers on version tags (`v*`) or manual dispatch, running lint/test/build, packaging with `npm pack`, uploading artifacts, and attaching the tarball to a GitHub Release.
-
-Neither workflow builds or pushes a container image: that's deliberately left manual (`scripts/build-and-push.sh`) for this fork.
+- `ci.yml` runs lint ➝ tests (Node 18/20 matrix) ➝ build on pushes to `master` or `modernize`, and on pull requests. Verification only, nothing published.
+- `release.yml` triggers on version tags (`v*`) or manual dispatch: the same lint/test/build gate, `npm pack` with a GitHub Release, and (only on an actual tag push) building and pushing the container image to GHCR (`ghcr.io/<owner>/pacman:<tag>`).
 
 ## Project Structure Highlights
 
@@ -207,8 +207,8 @@ Neither workflow builds or pushes a container image: that's deliberately left ma
 ├── test/                  # Mongo-path specs; test/postgres/ has the Postgres-path specs
 ├── Dockerfile             # Multi-stage, non-root, node:22-bookworm-slim
 ├── docker-compose.yml     # Local app + PostgreSQL stack, all-in-one for Docker
-├── k8s/                   # Parametrized Kubernetes manifests: base/ (external DB), all-in-one/ (bundled DB), gateway-api/ (see k8s/README.md)
-└── .github/workflows/     # CI/CD pipelines (lint/test/release only)
+├── k8s/                   # Parametrized Kubernetes manifests: base/ (external DB), all-in-one/ (bundled DB), gateway-api/, kustomize/ (see k8s/README.md)
+└── .github/workflows/     # CI (every commit) and release (version tags: package + publish image, see .github/workflows/README.md)
 ```
 
 ## Attribution

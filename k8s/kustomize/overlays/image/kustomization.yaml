@@ -1,0 +1,39 @@
+# Default: always the latest published image, for the zero-customization
+# case: "kubectl apply -k" against external-db/all-in-one needs nothing
+# else. Regenerated from kustomization.yaml.template only for the less
+# common case of pointing at a freshly built, not-yet-published image, see
+# the root k8s/kustomize/README.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+images:
+  - name: pacman
+    newName: ghcr.io/fjramons/pacman
+    newTag: latest
+
+# "latest" is a mutable tag: imagePullPolicy: IfNotPresent (base/'s value,
+# correct for the freshly-built-locally case in kustomization.yaml.template)
+# would let a node cache whatever "latest" happened to be first and never
+# check the registry again, defeating the whole point of using "latest"
+# here. Only patched in this file, not in the template: regenerating
+# kustomization.yaml from kustomization.yaml.template drops this patch,
+# correctly reverting to IfNotPresent for the local-image case, where
+# there's no real registry to pull a kind-loaded image from anyway.
+patches:
+  - target:
+      kind: Deployment
+      name: pacman-app
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Always
+  - target:
+      kind: Job
+      name: pacman-schema
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Always

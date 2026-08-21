@@ -2,3 +2,7 @@ node_modules
 .env
 k8s/rendered/
 .DS_Store
+
+# Kustomize mode: real DB env files, keep only the .example templates tracked
+k8s/kustomize/overlays/external-db/db.env
+k8s/kustomize/overlays/external-db/db-credentials.env

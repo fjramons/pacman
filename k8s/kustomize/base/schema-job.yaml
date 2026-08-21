@@ -1,0 +1,29 @@
+# Idempotent: schema.sql uses CREATE TABLE/INDEX IF NOT EXISTS, so
+# re-running this Job against an already-initialized database is safe.
+# Kustomize's hash-suffix generators don't help here: they only cover the
+# ConfigMap/Secret they generate, not this static, fixed-name Job. Its
+# spec.template is still immutable once created, same as in the envsubst
+# mode. Delete the completed Job before reapplying with a new image
+# (`kubectl delete job pacman-schema -n pacman`) if K8s complains about
+# immutable fields.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pacman-schema
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: apply-schema
+          image: pacman:dev
+          imagePullPolicy: IfNotPresent
+          command: ["node", "scripts/apply-schema.js"]
+          envFrom:
+            - configMapRef:
+                name: pacman-app-config
+            - configMapRef:
+                name: pacman-db-config
+            - secretRef:
+                name: pacman-db-credentials

@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: pacman
+
+resources:
+  - ../image
+
+configMapGenerator:
+  - name: pacman-db-config
+    envs:
+      - db.env
+
+secretGenerator:
+  - name: pacman-db-credentials
+    envs:
+      - db-credentials.env

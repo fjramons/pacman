@@ -1,8 +1,10 @@
 # Kubernetes manifests
 
-Plain manifests parametrized with `envsubst` placeholders, no Kustomize/Helm, matching the reference example style used across the rest of this workspace. `k8s/base/` is the deployment itself, connecting to a PostgreSQL instance provisioned elsewhere, the way it works in the real deployment; `k8s/gateway-api/`, `k8s/pg-sim/` and `k8s/all-in-one/` are separate, not applied by the default command below.
+Plain manifests parametrized with `envsubst` placeholders, no Helm, matching the reference example style used across the rest of this workspace. `k8s/base/` is the deployment itself, connecting to a PostgreSQL instance provisioned elsewhere, the way it works in the real deployment; `k8s/gateway-api/`, `k8s/pg-sim/` and `k8s/all-in-one/` are separate, not applied by the default command below.
 
 If you only have one Kubernetes cluster available and don't want to provision or point to an external PostgreSQL, see [`k8s/all-in-one/README.md`](all-in-one/README.md) instead: a casual-testing alternative that bundles a throwaway PostgreSQL in the same cluster.
+
+For a Kustomize-based alternative to this whole `envsubst` mode, using native generators/transformers instead of `${...}` placeholders, see [`k8s/kustomize/README.md`](kustomize/README.md): same two variants (external PostgreSQL / bundled all-in-one), same underlying application, this directory is untouched by it.
 
 ## Required variables
 

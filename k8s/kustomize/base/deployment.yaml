@@ -1,0 +1,51 @@
+# "pacman:dev" is an internal placeholder, irrelevant in practice: every
+# overlay resolves through overlays/image/ first, which always overrides it
+# via the "images:" transformer (matches on repository name, ignoring the
+# tag). base/ is not meant to be applied directly, see the root
+# k8s/kustomize/README.md.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pacman-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pacman-app
+  template:
+    metadata:
+      labels:
+        app: pacman-app
+    spec:
+      containers:
+        - name: pacman-app
+          image: pacman:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: pacman-app-config
+            - configMapRef:
+                name: pacman-db-config
+            - secretRef:
+                name: pacman-db-credentials
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20

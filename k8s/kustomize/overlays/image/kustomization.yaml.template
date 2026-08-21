@@ -1,0 +1,19 @@
+# Not applied directly: envsubst this into kustomization.yaml (overwriting
+# the default committed there) to point at a freshly built image instead of
+# the published reference one, see the root k8s/kustomize/README.md.
+#
+#   IMAGE_REGISTRY=... IMAGE_NAME=... IMAGE_TAG=... \
+#     envsubst < kustomization.yaml.template > kustomization.yaml
+#
+# Restore the default afterwards (git checkout kustomization.yaml) so the
+# repo doesn't stay pointed at a local/throwaway image.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+images:
+  - name: pacman
+    newName: ${IMAGE_REGISTRY}/${IMAGE_NAME}
+    newTag: ${IMAGE_TAG}

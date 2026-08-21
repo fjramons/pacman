@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - schema-job.yaml
+  - service.yaml
+
+configMapGenerator:
+  - name: pacman-app-config
+    literals:
+      - NODE_ENV=production
+      - PORT=8080
+      - DB_DRIVER=postgres

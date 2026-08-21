@@ -1,7 +1,6 @@
 var express = require("express");
 var router = express.Router();
 var bodyParser = require("body-parser");
-var ObjectId = require("mongodb").ObjectId;
 var Database = require("../lib/database");
 var baseLogger = require("../lib/logger");
 
@@ -28,22 +27,8 @@ router.use(function timeLog(req, res, next) {
 router.get("/id", async function (req, res, next) {
   logger.info("Handling GET /user/id");
   try {
-    var db = await Database.getDb(req.app);
     await randomLatency(10, 300);
-    var insertResult = await db.collection("userstats").insertOne(
-      {
-        date: Date(),
-      },
-      {
-        writeConcern: {
-          w: "majority",
-          j: true,
-          wtimeoutMS: 10000,
-        },
-      }
-    );
-
-    var userId = insertResult.insertedId || null;
+    var userId = await Database.createUser();
     logger.info({ userId }, "Successfully inserted new user ID");
     res.json(userId);
   } catch (err) {
@@ -69,41 +54,22 @@ router.post("/stats", urlencodedParser, async function (req, res, next) {
   var userET = parseInt(req.body.elapsedTime, 10);
 
   try {
-    var db = await Database.getDb(req.app);
     await randomLatency(10, 300);
-    var updateResult = await db.collection("userstats").updateOne(
-      {
-        _id: new ObjectId(req.body.userId),
-      },
-      {
-        $set: {
-          cloud: req.body.cloud,
-          zone: req.body.zone,
-          host: req.body.host,
-          score: userScore,
-          level: userLevel,
-          lives: userLives,
-          elapsedTime: userET,
-          date: Date(),
-          referer: req.headers.referer,
-          user_agent: req.headers["user-agent"],
-          hostname: req.hostname,
-          ip_addr: req.ip,
-        },
-        $inc: {
-          updateCounter: 1,
-        },
-      },
-      {
-        writeConcern: {
-          w: "majority",
-          j: true,
-          wtimeoutMS: 10000,
-        },
-      }
-    );
+    var updateResult = await Database.updateUserStats(req.body.userId, {
+      cloud: req.body.cloud,
+      zone: req.body.zone,
+      host: req.body.host,
+      score: userScore,
+      level: userLevel,
+      lives: userLives,
+      elapsedTime: userET,
+      referer: req.headers.referer,
+      user_agent: req.headers["user-agent"],
+      hostname: req.hostname,
+      ip_addr: req.ip,
+    });
 
-    var returnStatus = updateResult.acknowledged ? "success" : "error";
+    var returnStatus = updateResult.success ? "success" : "error";
     if (returnStatus === "success") {
       logger.info({ userId: req.body.userId }, "Successfully updated user stats");
     }
@@ -121,26 +87,7 @@ router.get("/stats", async function (req, res, next) {
   logger.info("Handling GET /user/stats");
 
   try {
-    var db = await Database.getDb(req.app);
-    var docs = await db
-      .collection("userstats")
-      .find({ score: { $exists: true } })
-      .sort({ _id: 1 })
-      .toArray();
-
-    var result = docs.map(function (item) {
-      return {
-        cloud: item["cloud"],
-        zone: item["zone"],
-        host: item["host"],
-        score: item["score"],
-        level: item["level"],
-        lives: item["lives"],
-        et: item["elapsedTime"],
-        txncount: item["updateCounter"],
-      };
-    });
-
+    var result = await Database.getAllUserStats();
     res.json(result);
   } catch (err) {
     logger.error({ err }, "Failed to fetch user stats");

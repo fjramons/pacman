@@ -1,25 +1,42 @@
 services:
-  pacman-mongo:
-    image: mongo:7.0
+  pacman-postgres:
+    image: postgres:17
     restart: unless-stopped
     environment:
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+      POSTGRES_DB: ${PGDATABASE:-pacman}
+      POSTGRES_USER: ${PGUSER:-pacman}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-pacman}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-pacman} -d ${PGDATABASE:-pacman}"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
     volumes:
-      - mongo-data:/data/db
+      - postgres-data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     ports:
-      - "${MY_MONGO_PORT}:${MY_MONGO_PORT}"
+      - "${PGPORT:-5432}:5432"
 
   pacman-app:
     build:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      - pacman-mongo
+      pacman-postgres:
+        condition: service_healthy
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
-      PORT: ${PORT}
-      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT:-8080}
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_DRIVER: ${DB_DRIVER:-postgres}
+      PGHOST: ${PGHOST:-pacman-postgres}
+      PGPORT: ${PGPORT:-5432}
+      PGDATABASE: ${PGDATABASE:-pacman}
+      PGUSER: ${PGUSER:-pacman}
+      PGPASSWORD: ${PGPASSWORD:-pacman}
+      PGSSLMODE: ${PGSSLMODE:-disable}
       MONGO_SERVICE_HOST: ${MONGO_SERVICE_HOST}
       MY_MONGO_PORT: ${MY_MONGO_PORT}
       MONGO_DATABASE: ${MONGO_DATABASE}
@@ -28,39 +45,23 @@ services:
       MONGO_AUTH_USER: ${MONGO_AUTH_USER}
       MONGO_AUTH_PWD: ${MONGO_AUTH_PWD}
       MONGO_REPLICA_SET: ${MONGO_REPLICA_SET}
-      SPLUNK_REALM: ${SPLUNK_REALM}
-      SPLUNK_RUM_ACCESS_TOKEN: ${SPLUNK_RUM_ACCESS_TOKEN}
-      SPLUNK_APPLICATION_NAME: ${SPLUNK_APPLICATION_NAME}
-      SPLUNK_APPLICATION_VERSION: ${SPLUNK_APPLICATION_VERSION}
-      SPLUNK_DEPLOYMENT_ENVIRONMENT: ${SPLUNK_DEPLOYMENT_ENVIRONMENT}
-      SPLUNK_SESSION_RECORDER: ${SPLUNK_SESSION_RECORDER}
-      SPLUNK_ACCESS_TOKEN: ${SPLUNK_ACCESS_TOKEN}
-      OTEL_LOG_LEVEL: ${OTEL_LOG_LEVEL}
-      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
-      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES}
-      SPLUNK_METRICS_ENABLED: ${SPLUNK_METRICS_ENABLED}
-      SPLUNK_INSTRUMENTATION_METRICS_ENABLED: ${SPLUNK_INSTRUMENTATION_METRICS_ENABLED}
-      SPLUNK_PROFILER_ENABLED: ${SPLUNK_PROFILER_ENABLED}
-      SPLUNK_PROFILER_LOGS_ENDPOINT: ${SPLUNK_PROFILER_LOGS_ENDPOINT}
     ports:
-      - "${PORT}:${PORT}"
-    logging:
-      driver: "splunk"
-      options:
-        splunk-token: ${SPLUNK_LOGS_TOKEN}
-        splunk-url: ${SPLUNK_LOGS_URL}
-        tag: "{{.Name}}/{{.FullID}}"
+      - "${PORT:-8080}:${PORT:-8080}"
 
   pacman-load:
     image: mcr.microsoft.com/playwright:v1.56.0-jammy
+    # Opt-in only: without a profile, "docker compose up" would start this
+    # too and it would run forever by default (LOAD_TEST_MAX_ITERATIONS=0),
+    # flooding a casual tester's highscore table with bot traffic. Start it
+    # explicitly with "docker compose run --rm pacman-load" instead.
+    profiles: ["load"]
     depends_on:
       - pacman-app
     working_dir: /usr/src/app
     volumes:
       - .:/usr/src/app
     environment:
-      LOAD_TEST_BASE_URL: ${LOAD_TEST_BASE_URL:-http://pacman-app:${PORT}}
+      LOAD_TEST_BASE_URL: ${LOAD_TEST_BASE_URL:-http://pacman-app:${PORT:-8080}}
       LOAD_TEST_VUS: ${LOAD_TEST_VUS:-5}
       LOAD_TEST_MIN_SESSION: ${LOAD_TEST_MIN_SESSION:-10}
       LOAD_TEST_MAX_SESSION: ${LOAD_TEST_MAX_SESSION:-30}
@@ -70,18 +71,5 @@ services:
       LOAD_TEST_MAX_LIVES: ${LOAD_TEST_MAX_LIVES:-5}
     entrypoint: ["sh", "-c", "npm ci && npm run load:test"]
 
-  otel-collector:
-    image: quay.io/signalfx/splunk-otel-collector:latest
-    depends_on:
-      - pacman-app
-    environment:
-      SPLUNK_ACCESS_TOKEN: ${SPLUNK_ACCESS_TOKEN}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
-      MONGO_SERVICE_HOST: ${MONGO_SERVICE_HOST}
-      MY_MONGO_PORT: ${MY_MONGO_PORT}
-    volumes:
-      - ./otel-collector-config.yaml:/etc/otel/config.yaml:ro
-    command: ["--config", "/etc/otel/config.yaml"]
-
 volumes:
-  mongo-data:
+  postgres-data:

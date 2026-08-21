@@ -1,2 +1,10 @@
 node_modules
 npm-debug.log
+.git
+test
+docker
+k8s
+.github
+*.md
+.env*
+docker-compose.yml

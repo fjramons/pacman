@@ -1,0 +1,15 @@
+---
+# ClusterIP (default): only reachable from inside this cluster, unlike
+# k8s/pg-sim/service.yaml (LoadBalancer, meant to be reached from a
+# separate cluster). Named "postgres" to match PGHOST in configmap.yaml.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: pacman
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

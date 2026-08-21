@@ -5,36 +5,41 @@
   "author": "Ivan Font <ivan@ivanfont.com>",
   "main": "bin/server.js",
   "scripts": {
-    "start": "node -r @splunk/otel/instrument .",
+    "start": "node .",
     "dev": "nodemon .",
-    "test": "mocha --timeout 20000 \"test/**/*.spec.js\"",
-    "lint": "eslint . --ext .js --max-warnings 0",
+    "test": "mocha --timeout 20000 \"test/*.spec.js\"",
+    "test:postgres": "mocha --timeout 20000 \"test/postgres/*.spec.js\"",
+    "lint": "eslint . --max-warnings 0",
     "build": "npm run lint && npm test",
     "load:test": "node test/load/playwright-load.js"
   },
   "license": "GPLv3",
   "dependencies": {
-    "@opentelemetry/api": "^1.9.0",
-    "@splunk/otel": "^4.0.0",
-    "@splunk/otel-web": "^1.0.1",
-    "@splunk/otel-web-session-recorder": "^1.0.0",
     "body-parser": "^1.20.2",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "mongodb": "^6.6.0",
+    "pg": "^8.13.1",
     "pino": "^9.2.0",
     "pino-pretty": "^11.2.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "chai": "^4.4.1",
-    "mocha": "^10.4.0",
+    "eslint": "^10.8.1",
+    "globals": "^17.11.0",
+    "mocha": "^11.8.0",
     "mongodb-memory-server": "^9.0.0",
     "nodemon": "^3.1.0",
-    "supertest": "^6.3.4",
-    "eslint": "^8.57.0",
-    "playwright": "^1.56.0"
+    "playwright": "^1.56.0",
+    "supertest": "^7.2.2"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.1.0",
+    "diff": "^9.0.0",
+    "glob": "^13.0.6"
   }
 }

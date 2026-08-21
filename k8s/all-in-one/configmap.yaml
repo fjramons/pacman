@@ -1,0 +1,17 @@
+---
+# Fixed values, not the ${...}-placeholder pattern used in k8s/base/: this
+# is a casual-testing convenience, the database connection is always the
+# bundled postgres-service.yaml in this same namespace, never external.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pacman-config
+  namespace: pacman
+data:
+  NODE_ENV: "production"
+  PORT: "8080"
+  DB_DRIVER: "postgres"
+  PGHOST: "postgres"
+  PGPORT: "5432"
+  PGDATABASE: "pacman"
+  PGSSLMODE: "disable"

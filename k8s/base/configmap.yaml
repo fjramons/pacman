@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pacman-config
+  namespace: pacman
+data:
+  NODE_ENV: "production"
+  PORT: "8080"
+  DB_DRIVER: "postgres"
+  PGHOST: "${DB_HOST}"
+  PGPORT: "${DB_PORT}"
+  PGDATABASE: "${DB_DATABASE}"
+  PGSSLMODE: "${DB_SSLMODE}"

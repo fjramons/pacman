@@ -1,12 +1,15 @@
 "use strict";
 
 process.env.NODE_ENV = "test";
+// This suite exercises the preserved Mongo adapter specifically (the
+// default DB_DRIVER is now "postgres" - see test/postgres/ for that path).
+process.env.DB_DRIVER = "mongo";
 
 const { expect } = require("chai");
 const { MongoMemoryReplSet } = require("mongodb-memory-server");
 const supertest = require("supertest");
 
-describe("Route integration", function () {
+describe("Route integration (Mongo adapter)", function () {
   let replSet;
   let Database;
   let app;
@@ -14,6 +17,11 @@ describe("Route integration", function () {
 
   before(async function () {
     this.timeout(60000);
+    // Re-assert here (not just at module load): mocha requires every
+    // spec file up front, so a sibling suite's after() hook running
+    // between file loads and this hook could have reset it.
+    process.env.DB_DRIVER = "mongo";
+
     replSet = await MongoMemoryReplSet.create({
       replSet: { count: 1, storageEngine: "wiredTiger" },
     });
@@ -32,15 +40,10 @@ describe("Route integration", function () {
       process.env.MONGO_REPLICA_SET = replicaSetName;
     }
 
-    process.env.SPLUNK_REALM = "test-realm";
-    process.env.SPLUNK_RUM_ACCESS_TOKEN = "test-token";
-    process.env.SPLUNK_APPLICATION_NAME = "test-app";
-    process.env.SPLUNK_APPLICATION_VERSION = "1.2.3";
-    process.env.SPLUNK_DEPLOYMENT_ENVIRONMENT = "test-env";
-    process.env.SPLUNK_SESSION_RECORDER = "session-recorder";
-
     delete require.cache[require.resolve("../lib/config")];
     delete require.cache[require.resolve("../lib/database")];
+    delete require.cache[require.resolve("../lib/db")];
+    delete require.cache[require.resolve("../lib/db/mongo-adapter")];
     delete require.cache[require.resolve("../app")];
 
     Database = require("../lib/database");
@@ -63,12 +66,7 @@ describe("Route integration", function () {
     delete process.env.MONGO_USE_SSL;
     delete process.env.MONGO_VALIDATE_SSL;
     delete process.env.MONGO_REPLICA_SET;
-    delete process.env.SPLUNK_REALM;
-    delete process.env.SPLUNK_RUM_ACCESS_TOKEN;
-    delete process.env.SPLUNK_APPLICATION_NAME;
-    delete process.env.SPLUNK_APPLICATION_VERSION;
-    delete process.env.SPLUNK_DEPLOYMENT_ENVIRONMENT;
-    delete process.env.SPLUNK_SESSION_RECORDER;
+    delete process.env.DB_DRIVER;
   });
 
   beforeEach(async function () {
@@ -182,69 +180,6 @@ describe("Route integration", function () {
         et: 120,
         txncount: 1,
       });
-    });
-  });
-
-  describe("Configuration routes", function () {
-    it("serves splunk instrumentation script with env values", async function () {
-      expect(process.env.SPLUNK_REALM).to.equal("test-realm");
-      expect(process.env.SPLUNK_RUM_ACCESS_TOKEN).to.equal("test-token");
-      expect(process.env.SPLUNK_APPLICATION_NAME).to.equal("test-app");
-      expect(process.env.SPLUNK_APPLICATION_VERSION).to.equal("1.2.3");
-      expect(process.env.SPLUNK_DEPLOYMENT_ENVIRONMENT).to.equal("test-env");
-
-      const layer = app._router.stack.find(function (stackLayer) {
-        return (
-          stackLayer.route &&
-          stackLayer.route.path === "/js/splunk-rum-loader.js"
-        );
-      });
-
-      expect(layer, "splunk instrumentation route is registered").to.exist;
-
-      const handler = layer.route.stack[0].handle;
-      let body = "";
-
-      await handler(
-        {},
-        {
-          type() {
-            return this;
-          },
-          send(payload) {
-            body = payload;
-          },
-        }
-      );
-
-      const extractJson = function (source, marker) {
-        const start = source.indexOf(marker);
-        expect(start, `${marker} missing`).to.be.greaterThan(-1);
-        const jsonStart = start + marker.length;
-        const jsonEnd = source.indexOf(";", jsonStart);
-        expect(jsonEnd, `${marker} terminator missing`).to.be.greaterThan(jsonStart);
-        const jsonString = source.slice(jsonStart, jsonEnd);
-        return JSON.parse(jsonString);
-      };
-
-      const rumConfig = extractJson(body, "var rumConfig = ");
-      expect(rumConfig).to.deep.equal({
-        realm: "test-realm",
-        rumAccessToken: "test-token",
-        applicationName: "test-app",
-        version: "1.2.3",
-        deploymentEnvironment: "test-env",
-      });
-
-      const sessionConfig = extractJson(body, "var sessionRecorderConfig = ");
-      expect(sessionConfig).to.deep.equal({
-        realm: "test-realm",
-        rumAccessToken: "test-token",
-        recorder: "session-recorder",
-      });
-
-      expect(body).to.include("window.SplunkRum.init");
-      expect(body).to.include("SplunkSessionRecorder.init");
     });
   });
 });

@@ -1,0 +1,16 @@
+---
+# Duplicated from k8s/base/service.yaml on purpose, see deployment.yaml in
+# this same directory for why.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pacman-app
+  namespace: pacman
+spec:
+  type: LoadBalancer
+  selector:
+    app: pacman-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

@@ -1,0 +1,29 @@
+---
+# Duplicated from k8s/base/schema-job.yaml on purpose, see deployment.yaml
+# in this same directory for why.
+#
+# Idempotent: schema.sql uses CREATE TABLE/INDEX IF NOT EXISTS, so
+# re-running this Job against an already-initialized database is safe.
+# Re-apply "kubectl apply -f -" a rendered version of this file whenever
+# the schema changes, or delete the completed Job first if K8s complains
+# about immutable fields (`kubectl delete job pacman-schema -n pacman`).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pacman-schema
+  namespace: pacman
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: apply-schema
+          image: ${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command: ["node", "scripts/apply-schema.js"]
+          envFrom:
+            - configMapRef:
+                name: pacman-config
+            - secretRef:
+                name: pacman-db-credentials

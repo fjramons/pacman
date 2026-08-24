@@ -8,10 +8,7 @@ const { Pool } = require('pg');
 const supertest = require('supertest');
 const { applySchema, truncateAll } = require('../helpers/apply-schema');
 
-// Runs against a real PostgreSQL instance reachable via PGHOST/PGPORT/etc.
-// (the "pg-sim" local kind cluster, or the real Terraform-provisioned
-// instance) - see the "Entorno local" README for how to stand it up.
-// Not part of `npm test`; run explicitly via `npm run test:postgres`.
+// Runs against a real PostgreSQL instance reachable via PGHOST/PGPORT/etc. (the "pg-sim" local kind cluster, or the real Terraform-provisioned instance); see the "Entorno local" README for how to stand it up. Not part of `npm test`; run explicitly via `npm run test:postgres`.
 describe('Route integration (Postgres adapter)', function () {
     let Database;
     let setupPool;
@@ -20,9 +17,7 @@ describe('Route integration (Postgres adapter)', function () {
 
     before(async function () {
         this.timeout(30000);
-        // Re-assert here (not just at module load): mocha requires every
-        // spec file up front, so a sibling suite's after() hook running
-        // between file loads and this hook could have reset it.
+        // Re-assert here (not just at module load): mocha requires every spec file up front, so a sibling suite's after() hook running between file loads and this hook could have reset it.
         process.env.DB_DRIVER = 'postgres';
 
         if (!process.env.PGHOST) {
@@ -131,9 +126,7 @@ describe('Route integration (Postgres adapter)', function () {
             const idResponse = await request.get('/user/id').expect(200);
             const userId = idResponse.body;
 
-            // Postgres backend: an opaque autoincrement integer, unlike the
-            // 24-char Mongo ObjectId string - the frontend treats it as
-            // opaque either way (confirmed in public/pacman-canvas.js).
+            // Postgres backend: an opaque autoincrement integer, unlike the 24-char Mongo ObjectId string; the frontend treats it as opaque either way (confirmed in public/pacman-canvas.js).
             expect(userId).to.be.a('number');
 
             const updateResponse = await request

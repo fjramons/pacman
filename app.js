@@ -15,8 +15,7 @@ const logger = baseLogger.child({ module: "app" });
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
-// Used by K8s readiness/liveness probes (see k8s/base/deployment.yaml) -
-// works the same regardless of which DB_DRIVER is active.
+// Used by K8s readiness/liveness probes (see k8s/base/deployment.yaml); works the same regardless of which DB_DRIVER is active.
 app.get("/healthz", async function (req, res) {
   const healthy = await Database.healthCheck();
   res.status(healthy ? 200 : 503).json({ healthy });

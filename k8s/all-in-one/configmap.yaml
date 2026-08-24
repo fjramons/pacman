@@ -1,7 +1,5 @@
 ---
-# Fixed values, not the ${...}-placeholder pattern used in k8s/base/: this
-# is a casual-testing convenience, the database connection is always the
-# bundled postgres-service.yaml in this same namespace, never external.
+# Fixed values, not the ${...}-placeholder pattern used in k8s/base/: this is a casual-testing convenience, the database connection is always the bundled postgres-service.yaml in this same namespace, never external.
 apiVersion: v1
 kind: ConfigMap
 metadata:

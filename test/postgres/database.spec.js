@@ -7,19 +7,14 @@ const { expect } = require('chai');
 const { Pool } = require('pg');
 const { applySchema } = require('../helpers/apply-schema');
 
-// Runs against a real PostgreSQL instance reachable via PGHOST/PGPORT/etc.
-// (the "pg-sim" local kind cluster, or the real Terraform-provisioned
-// instance) - see the "Entorno local" README for how to stand it up.
-// Not part of `npm test`; run explicitly via `npm run test:postgres`.
+// Runs against a real PostgreSQL instance reachable via PGHOST/PGPORT/etc. (the "pg-sim" local kind cluster, or the real Terraform-provisioned instance); see the "Entorno local" README for how to stand it up. Not part of `npm test`; run explicitly via `npm run test:postgres`.
 describe('Database helper (Postgres adapter)', function () {
     let Database;
     let setupPool;
 
     before(async function () {
         this.timeout(30000);
-        // Re-assert here (not just at module load): mocha requires every
-        // spec file up front, so a sibling suite's after() hook running
-        // between file loads and this hook could have reset it.
+        // Re-assert here (not just at module load): mocha requires every spec file up front, so a sibling suite's after() hook running between file loads and this hook could have reset it.
         process.env.DB_DRIVER = 'postgres';
 
         if (!process.env.PGHOST) {

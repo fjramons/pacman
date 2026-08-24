@@ -1,35 +1,25 @@
 #!/usr/bin/env bash
-# Builds the app image with a unique per-build tag and, optionally, pushes
-# it to a configurable registry. Never hardcodes a registry: IMAGE_REGISTRY
-# must be set by the caller (e.g. exported before running, or inline).
+# Builds the app image with a unique per-build tag and, optionally, pushes it to a configurable registry. Never hardcodes a registry: IMAGE_REGISTRY must be set by the caller (e.g. exported before running, or inline).
 #
 # Usage:
 #   IMAGE_REGISTRY=ghcr.io/<your-user> ./scripts/build-and-push.sh
 #   IMAGE_REGISTRY=ghcr.io/<your-user> ./scripts/build-and-push.sh --push
 #
-# Prints only the final image reference to stdout (all other output goes
-# to stderr), so it can be captured and chained into the k8s/ envsubst step:
+# The tag defaults to a short commit SHA (see below), but can be pinned explicitly instead, e.g. for a release build tagging both a version and "latest" from the same commit:
+#   IMAGE_REGISTRY=... IMAGE_TAG=v1.2.3 ./scripts/build-and-push.sh --push
+#   IMAGE_REGISTRY=... IMAGE_TAG=latest  ./scripts/build-and-push.sh --push
+#
+# Prints only the final image reference to stdout (all other output goes to stderr), so it can be captured and chained into the k8s/ envsubst step:
 #   IMAGE=$(IMAGE_REGISTRY=... ./scripts/build-and-push.sh --push)
 #
 # Registry alternatives:
 #   - ghcr.io/<your-user>   persistent, authenticated (docker login ghcr.io)
-#   - ttl.sh/<unique-name>  anonymous, no login, works against any
-#                           Kubernetes cluster (not just kind), but images
-#                           expire (max 24h). Generate a unique name so you
-#                           don't collide with someone else's, e.g.:
+#   - ttl.sh/<unique-name>  anonymous, no login, works against any Kubernetes cluster (not just kind), but images expire (max 24h). Generate a unique name so you don't collide with someone else's, e.g.:
 #                             UUID=$(uuidgen)
 #                             IMAGE_REGISTRY="ttl.sh/${UUID}" ./scripts/build-and-push.sh --push
-#                           then reuse the same $UUID when rendering the k8s/
-#                           manifests (IMAGE_REGISTRY="ttl.sh/${UUID}").
-#                           Validated: this also works against a real
-#                           Kubernetes cluster, kubelet pulls it over the
-#                           network like any other registry, not specific
-#                           to kind at all.
+#                           then reuse the same $UUID when rendering the k8s/ manifests (IMAGE_REGISTRY="ttl.sh/${UUID}"). Validated: this also works against a real Kubernetes cluster, kubelet pulls it over the network like any other registry, not specific to kind at all.
 #
-# For purely local iteration against the "app" kind cluster specifically,
-# you can skip a registry entirely and use `kind load docker-image <image>
-# --name app` instead of --push, faster, but doesn't validate
-# imagePullPolicy/auth, and only works with kind.
+# For purely local iteration against the "app" kind cluster specifically, you can skip a registry entirely and use `kind load docker-image <image> --name app` instead of --push, faster, but doesn't validate imagePullPolicy/auth, and only works with kind.
 
 set -euo pipefail
 
@@ -43,9 +33,14 @@ fi
 
 IMAGE_NAME="${IMAGE_NAME:-pacman}"
 
-TAG="$(git -C "${REPO_ROOT}" rev-parse --short HEAD)"
-if [[ -n "$(git -C "${REPO_ROOT}" status --porcelain)" ]]; then
-  TAG="${TAG}-dirty"
+if [[ -n "${IMAGE_TAG:-}" ]]; then
+  # An explicit tag (a release version, "latest"...) is used as-is: the "-dirty" suffix below only makes sense for the auto-derived commit SHA tag, it doesn't apply to a tag the caller chose on purpose.
+  TAG="${IMAGE_TAG}"
+else
+  TAG="$(git -C "${REPO_ROOT}" rev-parse --short HEAD)"
+  if [[ -n "$(git -C "${REPO_ROOT}" status --porcelain)" ]]; then
+    TAG="${TAG}-dirty"
+  fi
 fi
 
 IMAGE="${IMAGE_REGISTRY}/${IMAGE_NAME}:${TAG}"

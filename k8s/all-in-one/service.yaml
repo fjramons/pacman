@@ -1,6 +1,5 @@
 ---
-# Duplicated from k8s/base/service.yaml on purpose, see deployment.yaml in
-# this same directory for why.
+# Duplicated from k8s/base/service.yaml on purpose, see deployment.yaml in this same directory for why.
 apiVersion: v1
 kind: Service
 metadata:

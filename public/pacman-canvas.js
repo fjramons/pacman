@@ -538,8 +538,7 @@ function geronimo() {
     this.pauseResume = function () {
       if (!this.running) {
         // Get and store user ID
-        // TODO: create user ID once per client (leave here) or once
-        // per game (put in game.init)?
+        // TODO: create user ID once per client (leave here) or once per game (put in game.init)?
         getUserId();
         // start timer
         this.timer.start();

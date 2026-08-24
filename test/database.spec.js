@@ -1,8 +1,7 @@
 'use strict';
 
 process.env.NODE_ENV = 'test';
-// This suite exercises the preserved Mongo adapter specifically (the
-// default DB_DRIVER is now "postgres" - see test/postgres/ for that path).
+// This suite exercises the preserved Mongo adapter specifically (the default DB_DRIVER is now "postgres"; see test/postgres/ for that path).
 process.env.DB_DRIVER = 'mongo';
 
 const { expect } = require('chai');
@@ -14,9 +13,7 @@ describe('Database helper (Mongo adapter)', function () {
 
     before(async function () {
         this.timeout(60000);
-        // Re-assert here (not just at module load): mocha requires every
-        // spec file up front, so a sibling suite's after() hook running
-        // between file loads and this hook could have reset it.
+        // Re-assert here (not just at module load): mocha requires every spec file up front, so a sibling suite's after() hook running between file loads and this hook could have reset it.
         process.env.DB_DRIVER = 'mongo';
 
         replSet = await MongoMemoryReplSet.create({

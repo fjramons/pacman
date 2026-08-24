@@ -1,5 +1,4 @@
-# No persistent storage on purpose (emptyDir): this is a throwaway,
-# casual-testing database, data is lost if the pod is rescheduled.
+# No persistent storage on purpose (emptyDir): this is a throwaway, casual-testing database, data is lost if the pod is rescheduled.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

@@ -8,10 +8,7 @@ resources:
   - postgres-deployment.yaml
   - postgres-service.yaml
 
-# Fixed dummy values, not env files: this is a casual-testing convenience,
-# the database connection is always the bundled postgres-service.yaml in
-# this same namespace, never external. Safe to commit, same as the
-# equivalent k8s/all-in-one/secret.yaml in the envsubst mode.
+# Fixed dummy values, not env files: this is a casual-testing convenience, the database connection is always the bundled postgres-service.yaml in this same namespace, never external. Safe to commit, same as the equivalent k8s/all-in-one/secret.yaml in the envsubst mode.
 configMapGenerator:
   - name: pacman-db-config
     literals:

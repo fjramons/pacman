@@ -1,8 +1,5 @@
 ---
-# Duplicated from k8s/base/deployment.yaml on purpose: this directory is
-# meant to be self-contained (kubectl apply -f k8s/all-in-one/ never needs
-# to also read a file from k8s/base/), even though the content is
-# identical. Keep both in sync by hand if one changes.
+# Duplicated from k8s/base/deployment.yaml on purpose: this directory is meant to be self-contained (kubectl apply -f k8s/all-in-one/ never needs to also read a file from k8s/base/), even though the content is identical. Keep both in sync by hand if one changes.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

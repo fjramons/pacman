@@ -1,0 +1,8 @@
+# Pensado para un controlador GitOps (p.ej. ArgoCD), no para "kubectl apply -k" manual: a diferencia de external-db/all-in-one, no genera pacman-db-config/pacman-db-credentials desde ficheros .env. Asume que ya existen en el namespace (creados fuera de este overlay, por quien gestione el propio controlador GitOps) y solo los referencia por nombre, igual que ya hace base/ con las tres variables de entorno.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: pacman-dev
+
+resources:
+  - ../image

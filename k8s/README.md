@@ -52,6 +52,10 @@ The rendered output is never written back to the repo; if you need it on disk fo
 
 See `k8s/gateway-api/README.md`; not part of the command above.
 
+## Deploying by pull instead of push (ArgoCD)
+
+See [`k8s/argocd/README.md`](argocd/README.md): example ArgoCD `Application` manifests, an alternative to the `kubectl apply` shown above, not part of the command above either.
+
 ## Local test environment (`pg-sim`)
 
 `k8s/pg-sim/` only exists to stand up a throwaway PostgreSQL in the local `kind_cluster` test setup, simulating what the client's Terraform `postgresql` module provisions for real. It is local development tooling, not part of the reference example. The full local environment walkthrough (two `kind` clusters, how they reach each other) is workspace-specific setup documented outside this repo.

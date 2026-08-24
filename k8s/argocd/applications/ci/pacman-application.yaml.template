@@ -1,0 +1,26 @@
+# For a GitLab CI pipeline that validates a freshly built image through ArgoCD (pull) rather than "kubectl apply -k" (push): regenerate this with envsubst in that pipeline's own job, apply it, wait for sync, then delete it again once the validation is done. Never committed as pacman-application.yaml itself, only this .template is tracked.
+#
+# repoURL/targetRevision use GitLab's own predefined CI/CD variables ($CI_PROJECT_URL, $CI_COMMIT_SHA), not a placeholder: this manifest only ever exists as a regenerated file inside a real pipeline run, which already knows both, whatever GitLab project it's running in.
+#
+# source.path points at overlays/all-in-one (bundles its own throwaway Postgres), not overlays/dev: this validation shouldn't depend on externally-provisioned infrastructure at all, on purpose, so it stays fast and fully self-contained. source.kustomize.images pins the image this same pipeline run just built and pushed, ArgoCD's own mechanism for overriding an image tag without a git commit.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pacman-ci
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: ${CI_PROJECT_URL}.git
+    targetRevision: ${CI_COMMIT_SHA}
+    path: k8s/kustomize/overlays/all-in-one
+    kustomize:
+      images:
+        - pacman=${IMAGE_REGISTRY}/pacman:${CI_COMMIT_SHORT_SHA}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pacman
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

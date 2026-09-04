@@ -7,7 +7,7 @@ const { expect } = require('chai');
 const { Pool } = require('pg');
 const { applySchema } = require('../helpers/apply-schema');
 
-// Runs against a real PostgreSQL instance reachable via PGHOST/PGPORT/etc. (the "pg-sim" local kind cluster, or the real Terraform-provisioned instance); see the "Entorno local" README for how to stand it up. Not part of `npm test`; run explicitly via `npm run test:postgres`.
+// Runs against a real PostgreSQL instance reachable via PGHOST/PGPORT/etc.; see k8s/README.md#local-test-environment-pg-sim for how to stand one up locally. Not part of `npm test`; run explicitly via `npm run test:postgres`.
 describe('Database helper (Postgres adapter)', function () {
     let Database;
     let setupPool;

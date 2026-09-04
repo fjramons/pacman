@@ -1,5 +1,5 @@
 ---
-# Named with a "00-" prefix so a plain "*.yaml" glob/directory apply applies it first: kubectl doesn't reorder by resource kind, so without this the Namespace wouldn't exist yet when deployment.yaml (earlier alphabetically otherwise) gets applied.
+# "00-" prefix applies this first; see k8s/README.md.
 apiVersion: v1
 kind: Namespace
 metadata:

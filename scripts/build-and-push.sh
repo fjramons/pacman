@@ -14,12 +14,12 @@
 #
 # Registry alternatives:
 #   - ghcr.io/<your-user>   persistent, authenticated (docker login ghcr.io)
-#   - ttl.sh/<unique-name>  anonymous, no login, works against any Kubernetes cluster (not just kind), but images expire (max 24h). Generate a unique name so you don't collide with someone else's, e.g.:
+#   - ttl.sh/<unique-name>  anonymous, no login, works against any Kubernetes cluster, images expire (max 24h):
 #                             UUID=$(uuidgen)
 #                             IMAGE_REGISTRY="ttl.sh/${UUID}" ./scripts/build-and-push.sh --push
-#                           then reuse the same $UUID when rendering the k8s/ manifests (IMAGE_REGISTRY="ttl.sh/${UUID}"). Validated: this also works against a real Kubernetes cluster, kubelet pulls it over the network like any other registry, not specific to kind at all.
+#                           reuse the same $UUID when rendering the k8s/ manifests.
 #
-# For purely local iteration against the "app" kind cluster specifically, you can skip a registry entirely and use `kind load docker-image <image> --name app` instead of --push, faster, but doesn't validate imagePullPolicy/auth, and only works with kind.
+# Local "app" kind cluster only: `kind load docker-image <image> --name app` instead of --push. Faster, but skips imagePullPolicy/auth validation.
 
 set -euo pipefail
 
@@ -34,8 +34,7 @@ fi
 IMAGE_NAME="${IMAGE_NAME:-pacman}"
 
 if [[ -n "${IMAGE_TAG:-}" ]]; then
-  # An explicit tag (a release version, "latest"...) is used as-is: the "-dirty" suffix below only makes sense for the auto-derived commit SHA tag, it doesn't apply to a tag the caller chose on purpose.
-  TAG="${IMAGE_TAG}"
+  TAG="${IMAGE_TAG}"   # used as-is; the "-dirty" suffix below only applies to the auto-derived commit SHA tag
 else
   TAG="$(git -C "${REPO_ROOT}" rev-parse --short HEAD)"
   if [[ -n "$(git -C "${REPO_ROOT}" status --porcelain)" ]]; then

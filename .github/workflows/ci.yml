@@ -11,7 +11,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    # Alpine, not the bookworm-slim image the Dockerfile/other jobs use: ESLint has no native/Mongo dependency, so nothing here needs glibc. No actions/setup-node: the container already provides Node/npm at the pinned version, a separate setup-node step would be redundant.
+    # ESLint has no native/Mongo dependency, so no glibc needed here.
     container: node:20-alpine
     steps:
       - name: Checkout
@@ -62,7 +62,7 @@ jobs:
     name: Test (Postgres)
     runs-on: ubuntu-latest
     needs: lint
-    # Alpine for both: the "pg" driver is pure JS (no native/glibc dependency), and postgres:17-alpine is the well-established official variant. No actions/setup-node, same reasoning as the "lint" job.
+    # "pg" driver is pure JS, no native/glibc dependency.
     container: node:20-alpine
     services:
       postgres:
@@ -78,8 +78,7 @@ jobs:
           --health-retries 10
     env:
       DB_DRIVER: postgres
-      # Not "localhost": the job itself runs inside a container now, so the service is reachable by its service label on the shared Docker network, not via a host-mapped port.
-      PGHOST: postgres
+      PGHOST: postgres   # not "localhost": the job runs inside a container, reachable via the service label
       PGPORT: 5432
       PGDATABASE: pacman
       PGUSER: pacman
@@ -109,7 +108,7 @@ jobs:
           kubectl_version: v1.31.0
           wait: 90s
 
-      # Matches exactly what overlays/image/kustomization.yaml will reference below (local/pacman:dev). Building/loading under any other name (e.g. "pacman:dev") would NOT match after the overlay substitution: those are different image refs, causing ImagePullBackOff.
+      # Must match the local/pacman:dev tag the overlay substitution below produces, or the pod gets ImagePullBackOff.
       - name: Build image
         run: docker build -t local/pacman:dev .
 
@@ -123,8 +122,6 @@ jobs:
           IMAGE_REGISTRY=local IMAGE_NAME=pacman IMAGE_TAG=dev \
             envsubst < k8s/kustomize/overlays/image/kustomization.yaml.template \
             > k8s/kustomize/overlays/image/kustomization.yaml
-        # Not restored with "git checkout" afterwards: unlike the equivalent local workflow, this runner and checkout are discarded entirely when the job ends.
-
       - name: Deploy all-in-one overlay
         run: kubectl apply -k k8s/kustomize/overlays/all-in-one
 
@@ -137,7 +134,7 @@ jobs:
       - name: Wait for pacman-app
         run: kubectl -n pacman wait --for=condition=Ready pod -l app=pacman-app --timeout=90s
 
-      # kubectl port-forward works via the API server proxying to the backing pods, regardless of the Service's type/external-IP: the "type: LoadBalancer" on pacman-app stays <pending> forever on a standard GitHub-hosted runner (no cloud-controller-manager), but that doesn't block this check.
+      # port-forward proxies via the API server, unaffected by "type: LoadBalancer" staying <pending> on this runner.
       - name: Check /healthz
         run: |
           kubectl -n pacman port-forward svc/pacman-app 18080:80 &

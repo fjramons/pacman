@@ -1,18 +1,20 @@
 # Kubernetes manifests (Kustomize mode)
 
-Alternative to the plain `envsubst`-parametrized manifests in `k8s/base/`/`k8s/all-in-one/` (see the root `k8s/README.md`), using native Kustomize mechanisms instead of `${...}` text placeholders: `configMapGenerator`/`secretGenerator` for configuration and credentials, and the `images:` transformer for the container image. Same two variants as the `envsubst` mode, same underlying application: `overlays/external-db/` connects to a PostgreSQL instance provisioned elsewhere, matching the real deployment; `overlays/all-in-one/` bundles a throwaway PostgreSQL in the same cluster for casual testing, the Kustomize equivalent of `k8s/all-in-one/`. Both share the same `base/` (Namespace, Deployment, Service, schema Job) through `overlays/image/` (see "Design" below), so nothing is hand-duplicated between variants the way `k8s/all-in-one/` duplicates `k8s/base/` in the `envsubst` mode.
+Alternative to the `envsubst`-parametrized manifests in `k8s/base/`/`k8s/all-in-one/` (see the root [`k8s/README.md`](../README.md)), using native Kustomize mechanisms instead: `configMapGenerator`/`secretGenerator` for configuration/credentials, the `images:` transformer for the container image.
 
-`overlays/dev/` and `overlays/prod/` are a third pair of variants, for a GitOps controller (e.g. ArgoCD, see [`../argocd/README.md`](../argocd/README.md) for example `Application` manifests that use them) rather than a direct `kubectl apply -k`: same `../image` base as `external-db`, but namespaced `pacman-dev`/`pacman-prod` and, unlike `external-db`, without a `configMapGenerator`/`secretGenerator` of their own. They assume `pacman-db-config`/`pacman-db-credentials` already exist in the target namespace, created out of band by whatever manages the GitOps controller's environment, and only reference them by name, the same way `base/` itself does. `overlays/prod/` additionally patches the Deployment to 2 replicas, the only illustrative difference from `overlays/dev/` in this example.
+- `overlays/external-db/`: connects to a PostgreSQL instance provisioned elsewhere, matching the real deployment.
+- `overlays/all-in-one/`: bundles a throwaway PostgreSQL in the same cluster, the Kustomize equivalent of `k8s/all-in-one/`.
+- `overlays/dev/`/`overlays/prod/`: for a GitOps controller (e.g. ArgoCD, see [`../argocd/README.md`](../argocd/README.md)) rather than a direct `kubectl apply -k`. Namespaced `pacman-dev`/`pacman-prod`, and assume `pacman-db-config`/`pacman-db-credentials` already exist in the target namespace (created out of band), referencing them by name like `base/` does. `overlays/prod/` additionally patches the Deployment to 2 replicas.
 
-`base/` is not meant to be applied on its own: its Deployment/Job reference a `pacman-db-config` ConfigMap and a `pacman-db-credentials` Secret by name that only the overlays generate (see "Design" below), and its container image is an internal placeholder (`pacman:dev`) that only `overlays/image/` replaces with a real one. Always apply through `overlays/external-db/` or `overlays/all-in-one/`.
+All variants share `base/` (Namespace, Deployment, Service, schema Job) through `overlays/image/` (see Design), nothing hand-duplicated between them. `base/` is not meant to be applied on its own: its Deployment/Job reference `pacman-db-config`/`pacman-db-credentials` by name (only the overlays generate them), and its image is an internal placeholder (`pacman:dev`) only `overlays/image/` replaces. Always apply through an overlay.
 
 ## Prerequisites
 
-`kubectl` (1.14+, for its built-in `apply -k`/`kustomize` support) to apply the manifests, and `docker` to build the app image, only needed for the less common case of testing a freshly built image (see "Apply" below). No standalone `kustomize` binary is used anywhere in this mode.
+`kubectl` 1.14+ (built-in `apply -k`/`kustomize` support). `docker`, only for the less common case of testing a freshly built image. No standalone `kustomize` binary used anywhere.
 
 ## Apply
 
-**Common case, always the latest published image** (no setup beyond the DB connection):
+**Common case, always the latest published image:**
 
 ```bash
 # external-db: copy the .example templates first and fill in your values
@@ -26,9 +28,18 @@ kubectl apply -k k8s/kustomize/overlays/external-db
 kubectl apply -k k8s/kustomize/overlays/all-in-one
 ```
 
-`db.env`/`db-credentials.env` are gitignored, only their `.example` templates are tracked, the same pattern used for `terraform.tfvars` elsewhere in this workspace: never commit real connection values or credentials.
+`db.env`/`db-credentials.env` are gitignored, only their `.example` templates are tracked: never commit real connection values.
 
-**Less common case, a freshly built image instead of the published one** (see "Design" below for why this is the one that needs a substitution step, not the other way around):
+If your own automation already has these values as environment variables, `db.env.template`/`db-credentials.env.template` are an alternative to the manual copy above:
+
+```bash
+PGHOST=... PGPORT=... PGDATABASE=... \
+  envsubst < "${EXTERNAL_DB_DIR}/db.env.template" > "${EXTERNAL_DB_DIR}/db.env"
+PGUSER=... PGPASSWORD=... \
+  envsubst < "${EXTERNAL_DB_DIR}/db-credentials.env.template" > "${EXTERNAL_DB_DIR}/db-credentials.env"
+```
+
+**Less common case, a freshly built image instead of the published one** (see Design for why this side needs the substitution step):
 
 ```bash
 # Any cluster, not just kind: build and push to a login-free temporary registry (ttl.sh)
@@ -50,22 +61,24 @@ kubectl apply -k k8s/kustomize/overlays/external-db   # or overlays/all-in-one
 git checkout -- k8s/kustomize/overlays/image/kustomization.yaml
 ```
 
-The last step matters: `kustomization.yaml` is a tracked file, and `envsubst` overwrites it in place. Restoring it afterwards keeps the repo pointed at the published reference image, not a local/throwaway one.
+The last step matters: `kustomization.yaml` is a tracked file that `envsubst` overwrites in place; restoring it keeps the repo pointed at the published reference image.
 
 ## Design
 
-**Configuration is split into three generated sources**, referenced from the Deployment/Job via three `envFrom` entries, rather than one `ConfigMap`/`Secret` pair edited per variant:
+**Configuration, three generated sources** via three `envFrom` entries, instead of one `ConfigMap`/`Secret` pair edited per variant:
 
-- `pacman-app-config`: values common to both variants (`NODE_ENV`, `PORT`, `DB_DRIVER`), generated once in `base/kustomization.yaml`, never overridden.
-- `pacman-db-config`: connection values that differ per variant, generated only in each overlay (from `db.env` in `external-db`, from fixed literals in `all-in-one`). `base/` never declares this generator, only references the name; neither does `overlays/dev/`/`overlays/prod/`, which reference the same names but expect a GitOps controller's environment to have created them beforehand, not Kustomize.
-- `pacman-db-credentials`: same idea, for credentials, via `secretGenerator`.
+- `pacman-app-config`: values common to both variants (`NODE_ENV`, `PORT`, `DB_DRIVER`), generated once in `base/kustomization.yaml`.
+- `pacman-db-config`/`pacman-db-credentials`: connection values/credentials that differ per variant, generated only in each overlay (from `db.env`/fixed literals). `base/`, `overlays/dev/`, `overlays/prod/` only reference the names, never declare the generator.
 
-This works without `base/` and the overlay ever declaring the same generator twice (no `behavior: merge`/`replace` needed): Kustomize's hash-suffix and reference-rewriting transformers run once over the whole assembled resource tree for a build, regardless of which `kustomization.yaml` in that tree declared the generator versus the resource that references it by name.
+Kustomize's hash-suffix and reference-rewriting transformers run once over the whole assembled resource tree, so no `behavior: merge`/`replace` is needed regardless of which `kustomization.yaml` declares a generator vs. references it.
 
-**Image, via a dedicated `overlays/image/` layer**: `base/` keeps an internal placeholder (`image: pacman:dev`), and both `overlays/external-db/` and `overlays/all-in-one/` resolve their `resources:` through `overlays/image/` instead of `../../base` directly, which is the only place the `images:` transformer is declared. `overlays/image/kustomization.yaml` is a tracked file whose committed default tracks `latest` (published as a second tag alongside every versioned release), matching the common case above: `kubectl apply -k` always gets the most recently published image, no bump step needed after a release. `overlays/image/kustomization.yaml.template` is the same file with `${IMAGE_REGISTRY}`/`${IMAGE_NAME}`/`${IMAGE_TAG}` placeholders instead, for the less common case of pointing at a freshly built image: Kustomize has no built-in way to read an `images:` value from an environment variable, so that case regenerates `kustomization.yaml` from the template with `envsubst` (a small, deliberate, occasional edit of one tracked file, restored afterwards, not something regenerated on every apply). To pin a specific version instead of always tracking `latest`, edit `newTag` in `overlays/image/kustomization.yaml` directly (e.g. a released version tag) rather than regenerating it from the template.
+**Image, via `overlays/image/`**: `base/` keeps an internal placeholder (`image: pacman:dev`); every overlay resolves `resources:` through `overlays/image/` rather than `../../base` directly, the only place the `images:` transformer is declared.
 
-`latest` is a mutable tag, so `overlays/image/kustomization.yaml` also patches `imagePullPolicy` to `Always` on the Deployment and the schema Job (`base/` keeps `IfNotPresent`, correct for the freshly-built-locally case above): without it, a node that already cached some "latest" would never check the registry again, which would make "latest" behave like "whatever was first pulled" instead of "the most recent one". That patch lives only in `kustomization.yaml`, not in the template, so regenerating from the template for the local-image case correctly drops it and reverts to `IfNotPresent` (there's no real registry to re-pull a kind-loaded image from anyway).
+- `overlays/image/kustomization.yaml` (tracked) defaults to `latest`, published alongside every release: `kubectl apply -k` always gets the most recent image, no bump step needed.
+- `overlays/image/kustomization.yaml.template` is the same file with `${IMAGE_REGISTRY}`/`${IMAGE_NAME}`/`${IMAGE_TAG}` placeholders, used to regenerate `kustomization.yaml` via `envsubst` for the less common freshly-built-image case (a deliberate, occasional edit of one tracked file, restored afterwards).
+- To pin a specific version instead of `latest`, edit `newTag` in `overlays/image/kustomization.yaml` directly.
+- `latest` is mutable, so `overlays/image/kustomization.yaml` also patches `imagePullPolicy` to `Always` on the Deployment and schema Job (`base/` keeps `IfNotPresent`). The patch lives only in `kustomization.yaml`, not the template, so regenerating from the template correctly drops it.
 
-**Namespace**: each overlay sets `namespace:` once (`namespace:` at the top of its `kustomization.yaml`: `pacman` for `external-db`/`all-in-one`, `pacman-dev`/`pacman-prod` for the other two), rather than hardcoding `metadata.namespace` in every manifest as the `envsubst` mode does. This also namespaces the extra Postgres resources `overlays/all-in-one/` adds alongside `../image`. Unlike the `envsubst` mode, no `00-` filename prefix or `---` document separator is needed anywhere here: Kustomize applies the Namespace before namespaced resources on its own, it doesn't rely on file or stream order.
+**Namespace**: each overlay sets `namespace:` once, instead of hardcoding `metadata.namespace` per manifest as the `envsubst` mode does. Unlike that mode, no `00-` filename prefix or `---` separator is needed: Kustomize applies the Namespace before namespaced resources on its own.
 
-**Schema Job immutability**: Kustomize does not solve this. `pacman-schema` is a static, fixed-name Job, not a generated resource, so its `spec.template` is still immutable once created, same as in the `envsubst` mode; delete the completed Job (`kubectl delete job pacman-schema -n pacman`) before reapplying with a new image if `kubectl apply` complains about immutable fields.
+**Schema Job immutability**: Kustomize does not solve this. `pacman-schema` is a static, fixed-name Job, so its `spec.template` is still immutable once created; delete it (`kubectl delete job pacman-schema -n pacman`) before reapplying with a new image if `kubectl apply` complains.

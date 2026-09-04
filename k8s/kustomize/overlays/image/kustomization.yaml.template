@@ -13,4 +13,5 @@ resources:
 images:
   - name: pacman
     newName: ${IMAGE_REGISTRY}/${IMAGE_NAME}
-    newTag: ${IMAGE_TAG}
+    # Quoted: an unquoted commit short SHA can look like YAML scientific notation, producing "cannot unmarshal number ... of type string".
+    newTag: "${IMAGE_TAG}"

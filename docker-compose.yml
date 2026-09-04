@@ -50,7 +50,7 @@ services:
 
   pacman-load:
     image: mcr.microsoft.com/playwright:v1.56.0-jammy
-    # Opt-in only: without a profile, "docker compose up" would start this too and it would run forever by default (LOAD_TEST_MAX_ITERATIONS=0), flooding a casual tester's highscore table with bot traffic. Start it explicitly with "docker compose run --rm pacman-load" instead.
+    # Opt-in only: runs indefinitely by default. Start explicitly with "docker compose run --rm pacman-load".
     profiles: ["load"]
     depends_on:
       - pacman-app

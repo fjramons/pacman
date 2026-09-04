@@ -8,7 +8,7 @@ const { Pool } = require('pg');
 const supertest = require('supertest');
 const { applySchema, truncateAll } = require('../helpers/apply-schema');
 
-// Runs against a real PostgreSQL instance reachable via PGHOST/PGPORT/etc. (the "pg-sim" local kind cluster, or the real Terraform-provisioned instance); see the "Entorno local" README for how to stand it up. Not part of `npm test`; run explicitly via `npm run test:postgres`.
+// Runs against a real PostgreSQL instance reachable via PGHOST/PGPORT/etc.; see k8s/README.md#local-test-environment-pg-sim for how to stand one up locally. Not part of `npm test`; run explicitly via `npm run test:postgres`.
 describe('Route integration (Postgres adapter)', function () {
     let Database;
     let setupPool;
@@ -126,7 +126,7 @@ describe('Route integration (Postgres adapter)', function () {
             const idResponse = await request.get('/user/id').expect(200);
             const userId = idResponse.body;
 
-            // Postgres backend: an opaque autoincrement integer, unlike the 24-char Mongo ObjectId string; the frontend treats it as opaque either way (confirmed in public/pacman-canvas.js).
+            // Postgres backend: an opaque autoincrement integer, unlike the 24-char Mongo ObjectId string.
             expect(userId).to.be.a('number');
 
             const updateResponse = await request

@@ -10,8 +10,8 @@ Triggers on push to `master`/`modernize` and on pull requests. Runs lint → tes
 
 Triggers on a `v*` tag push, or manual dispatch. Two jobs:
 
-- `build-and-package`: the same lint/test/build gate as `ci.yml` (a release can be cut from a tag `ci.yml`'s branch/PR triggers never saw), then `npm pack` and, only on an actual tag push, a GitHub Release with that tarball attached.
-- `publish-image`: needs `build-and-package` to pass first. Only on an actual tag push (`if: startsWith(github.ref, 'refs/tags/')`), so a manual `workflow_dispatch` without a real tag runs the lint/test/build/pack gate but publishes neither the GitHub Release nor the image, a dry run. Logs into GHCR with the built-in `GITHUB_TOKEN` (no extra secret to configure) and pushes two tags: `ghcr.io/<owner>/<repo>:<tag>` (the git tag itself) and `ghcr.io/<owner>/<repo>:latest`.
+- `build-and-package`: same lint/test/build gate as `ci.yml`, then `npm pack` and, only on an actual tag push, a GitHub Release with that tarball attached.
+- `publish-image`: needs `build-and-package`. Only on an actual tag push, a manual `workflow_dispatch` without a real tag runs as a dry run. Logs into GHCR with the built-in `GITHUB_TOKEN` and pushes two tags: `ghcr.io/<owner>/<repo>:<tag>` and `:latest`.
 
 To cut a release:
 
@@ -22,7 +22,7 @@ git push origin vX.Y.Z
 
 ## After a release publishes
 
-Nothing to do: `k8s/kustomize/overlays/image/kustomization.yaml` (the Kustomize deployment mode, see `k8s/kustomize/README.md`) tracks `:latest` by default, so `kubectl apply -k` against `overlays/external-db/`/`overlays/all-in-one/` automatically picks up whatever this workflow just published. To pin a specific version instead, edit `newTag` in that file directly.
+Nothing to do: `k8s/kustomize/overlays/image/kustomization.yaml` tracks `:latest` by default, so `kubectl apply -k` picks up whatever this workflow just published. To pin a version instead, edit `newTag` there directly.
 
 ## GHCR package visibility, one-time check
 

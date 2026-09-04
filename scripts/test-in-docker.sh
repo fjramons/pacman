@@ -7,7 +7,7 @@
 #   --network NAME   join an existing Docker network (needed for `npm run test:postgres` to reach a PostgreSQL instance running in another container/kind cluster)
 #   CMD...            command to run inside the container after "--" (default: npm test)
 #
-# Why this exists: on some hosts, the locally installed Node version is far ahead of any LTS and breaks test tooling this app depends on. Mocha's bundled yargs can fail with "require is not defined in ES module scope", and mongodb-memory-server needs a Mongo binary with a Debian 12 build (the default 6.0.14 has none) plus libcurl4, which node:*-bookworm-slim doesn't include. Running everything inside a pinned, known-good Node image sidesteps all of that regardless of what's installed on the host.
+# Sidesteps test tooling breakage on hosts with a Node version far ahead of any LTS.
 #
 # PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD/PGSSLMODE/DB_DRIVER are forwarded automatically if already exported in the calling shell.
 
@@ -46,7 +46,7 @@ fi
 
 VOLUME_NAME="$(basename "$REPO_ROOT")_node_modules"
 
-# Pre-create the mountpoint as the current (non-root) user. Otherwise, since node_modules doesn't exist yet inside the bind-mounted repo, Docker creates it itself as the mountpoint for the named volume below, owned by root (the daemon's own user), leaving a root-owned directory on the host after every run.
+# Pre-create as the current user; otherwise Docker creates it as root when mounting the named volume below.
 mkdir -p "${REPO_ROOT}/node_modules"
 
 DOCKER_ARGS=(

@@ -4,22 +4,21 @@ Minimal ArgoCD `Application` manifests for deploying this app by pull instead of
 
 ## Prerequisites
 
-- **A Kubernetes cluster with ArgoCD already installed and operational.** Nothing in this repo installs ArgoCD itself: it's assumed to already be part of the target cluster. Applying these manifests against a cluster without ArgoCD's own CRDs/controller does nothing useful.
-- **Credentials for ArgoCD to pull whichever repo hosts these manifests**, if that repo is private: ArgoCD needs a configured `Repository` (or repository credentials Secret) before any `Application` resource pointing at it can sync, same as any private-repo GitOps source. Set this up once per ArgoCD instance, outside of anything these manifests can automate.
-- `pacman-db-config`/`pacman-db-credentials` already present in the target namespace (`pacman-dev`/`pacman-prod`/`pacman`) before an `Application` here is applied. Unlike `k8s/kustomize/overlays/external-db/`, the `dev`/`prod`/`ci` overlays these Applications point at don't generate them from `.env` files: ArgoCD only ever reads from git, so a value that must vary per deployment (a database password, a freshly built image tag) can't come from a Kustomize generator here. Whatever manages that namespace has to create the ConfigMap/Secret directly, before applying the `Application`.
+- A Kubernetes cluster with ArgoCD already installed and operational (not provisioned by this repo).
+- If the repo hosting these manifests is private, a configured ArgoCD `Repository`/credentials Secret, set up once per ArgoCD instance.
+- `pacman-db-config`/`pacman-db-credentials` already present in the target namespace (`pacman-dev`/`pacman-prod`/`pacman`) before applying: unlike `overlays/external-db/`, the `dev`/`prod`/`ci` overlays don't generate them from `.env` files, since ArgoCD only reads from git. Whatever manages the namespace must create them directly.
 
 ## `applications/`
 
 | File | `source.path` | Meant to be applied by |
 | --- | --- | --- |
-| `dev/pacman-application.yaml` | `k8s/kustomize/overlays/dev` | Whoever manages the `dev` environment; static, apply it once, ArgoCD keeps it in sync afterwards. |
+| `dev/pacman-application.yaml` | `k8s/kustomize/overlays/dev` | Whoever manages `dev`; static, apply once, ArgoCD keeps it in sync. |
 | `prod/pacman-application.yaml` | `k8s/kustomize/overlays/prod` | Same, for `prod`. |
-| `ci/pacman-application.yaml.template` | `k8s/kustomize/overlays/all-in-one` | A CI pipeline validating a freshly built image, regenerated per run (see the file's own comment) and deleted again once done. |
+| `ci/pacman-application.yaml.template` | `k8s/kustomize/overlays/all-in-one` | A CI pipeline validating a freshly built image, regenerated per run and deleted after. |
 
-`dev/pacman-application.yaml` and `prod/pacman-application.yaml` both point `repoURL` at this fork (`https://github.com/fjramons/pacman.git`): adjust it to point at your own fork if you're not deploying this exact one.
+`dev`/`prod` point `repoURL` at this fork (`https://github.com/fjramons/pacman.git`); adjust it if deploying your own fork.
 
 ## Design
 
-**Why `Application` only, never `kubectl apply -k` here.** The push-based deployment (`kubectl apply -k`, see `k8s/kustomize/README.md`) still works and is documented as-is; these `Application` manifests are an additional, pull-based path, not a replacement.
-
-**No dedicated Kustomize layer to pin a different image registry.** `k8s/kustomize/overlays/image/kustomization.yaml` (which `overlays/dev`/`overlays/prod` already resolve through) already carries the `images:` transformer; point it at your own registry there directly rather than adding another Kustomize layer just for that.
+- **`Application` only, never `kubectl apply -k` here**: the push-based deployment still works and is documented as-is; these manifests are an additional, pull-based path.
+- **No dedicated Kustomize layer for a different image registry**: `overlays/image/kustomization.yaml` (which `overlays/dev`/`overlays/prod` already resolve through) already carries the `images:` transformer; point it at your own registry there.

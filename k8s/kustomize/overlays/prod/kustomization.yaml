@@ -1,4 +1,4 @@
-# Mismo diseño que ../dev, ver el comentario ahí: pensado para un controlador GitOps, pacman-db-config/pacman-db-credentials se asumen ya existentes en el namespace, no generados por este overlay.
+# Same design as ../dev, see its comment.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -7,7 +7,7 @@ namespace: pacman-prod
 resources:
   - ../image
 
-# Único toque ilustrativo de diferencia dev/prod en este ejemplo: más réplicas, no una base de datos ni una imagen distintas (ver el propio README de este directorio para por qué ambas comparten todo lo demás).
+# Only illustrative dev/prod difference in this example: more replicas.
 patches:
   - target:
       kind: Deployment

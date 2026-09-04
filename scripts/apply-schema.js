@@ -4,7 +4,7 @@
 // PGHOST=... PGPORT=... PGDATABASE=... PGUSER=... PGPASSWORD=... \
 //   node scripts/apply-schema.js
 //
-// Waits for PostgreSQL to accept connections before applying the schema (up to WAIT_FOR_PG_TIMEOUT_MS, 60s by default), retrying every 2s. This is deliberate: when PostgreSQL and this Job are created together (see k8s/all-in-one/README.md), there's no guarantee PostgreSQL is ready by the time this runs. Without an internal retry, a Job with a bounded number of pod restarts (backoffLimit) can burn through all of them before PostgreSQL comes up, and fail permanently instead of just waiting a bit longer.
+// Waits for PostgreSQL to accept connections before applying the schema (up to WAIT_FOR_PG_TIMEOUT_MS, 60s by default), retrying every 2s: needed because PostgreSQL and this Job can be created together (see k8s/all-in-one/README.md), with no guarantee PostgreSQL is ready yet. Without this, the Job's bounded backoffLimit could exhaust before PostgreSQL comes up.
 
 const fs = require('fs');
 const path = require('path');

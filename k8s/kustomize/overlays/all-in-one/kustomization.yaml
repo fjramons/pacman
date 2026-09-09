@@ -4,11 +4,13 @@ kind: Kustomization
 namespace: pacman
 
 resources:
+  - bootstrap-secret-rbac.yaml
+  - bootstrap-secret-job.yaml
   - ../image
   - postgres-deployment.yaml
   - postgres-service.yaml
 
-# Fixed dummy values, not env files: this is a casual-testing convenience, the database connection is always the bundled postgres-service.yaml in this same namespace, never external. Safe to commit, same as the equivalent k8s/all-in-one/secret.yaml in the envsubst mode.
+# Static, non-secret connection values: pacman-db-credentials is created separately by bootstrap-secret-job.yaml instead (see README, Design), never a secretGenerator here.
 configMapGenerator:
   - name: pacman-db-config
     literals:
@@ -16,12 +18,3 @@ configMapGenerator:
       - PGPORT=5432
       - PGDATABASE=pacman
       - PGSSLMODE=disable
-
-secretGenerator:
-  - name: pacman-db-credentials
-    literals:
-      - PGUSER=pacman
-      - PGPASSWORD=pacman
-      - POSTGRES_DB=pacman
-      - POSTGRES_USER=pacman
-      - POSTGRES_PASSWORD=pacman

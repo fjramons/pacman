@@ -24,7 +24,7 @@ cp "${EXTERNAL_DB_DIR}/db-credentials.env.example" "${EXTERNAL_DB_DIR}/db-creden
 # edit both files, then:
 kubectl apply -k k8s/kustomize/overlays/external-db
 
-# all-in-one: no files to copy, fixed dummy DB values are already committed
+# all-in-one: no files to copy, the DB password is generated on this first apply (see overlays/all-in-one/README.md)
 kubectl apply -k k8s/kustomize/overlays/all-in-one
 ```
 
@@ -68,7 +68,8 @@ The last step matters: `kustomization.yaml` is a tracked file that `envsubst` ov
 **Configuration, three generated sources** via three `envFrom` entries, instead of one `ConfigMap`/`Secret` pair edited per variant:
 
 - `pacman-app-config`: values common to both variants (`NODE_ENV`, `PORT`, `DB_DRIVER`), generated once in `base/kustomization.yaml`.
-- `pacman-db-config`/`pacman-db-credentials`: connection values/credentials that differ per variant, generated only in each overlay (from `db.env`/fixed literals). `base/`, `overlays/dev/`, `overlays/prod/` only reference the names, never declare the generator.
+- `pacman-db-config`: connection values that differ per variant, generated only in each overlay (from `db.env`/fixed literals). `base/`, `overlays/dev/`, `overlays/prod/` only reference the name, never declare the generator.
+- `pacman-db-credentials`: same idea, but never a `secretGenerator` in `overlays/all-in-one/` (a bootstrap Job creates it in-cluster instead, see that overlay's own README) or in `overlays/dev/`/`overlays/prod/` (created out of band by whatever manages that namespace). Only `overlays/external-db/` declares its generator, from `db-credentials.env`.
 
 Kustomize's hash-suffix and reference-rewriting transformers run once over the whole assembled resource tree, so no `behavior: merge`/`replace` is needed regardless of which `kustomization.yaml` declares a generator vs. references it.
 

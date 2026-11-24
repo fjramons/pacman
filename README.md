@@ -15,7 +15,7 @@ A modernized take on the classic Pac-Man Node.js game, adapted as a Platform Eng
 - **Configurable database backend**: `DB_DRIVER=postgres` (default) or `mongo`, both behind the same driver interface, each with its own test suite.
 - **No self-managed database in the Kubernetes deployment**: `k8s/` manifests connect to an externally provisioned PostgreSQL. `docker-compose.yml` is the exception, bundling its own PostgreSQL for local testing.
 - **Structured logging**: consistent JSON output across the API, location probes, and server bootstrap.
-- **Automated testing**: Mocha/Chai/Supertest — `mongodb-memory-server` for the Mongo path (`npm test`), a real PostgreSQL instance for the Postgres path (`npm run test:postgres`).
+- **Automated testing**: Mocha/Chai/Supertest, with `mongodb-memory-server` for the Mongo path (`npm test`) and a real PostgreSQL instance for the Postgres path (`npm run test:postgres`).
 - **Container & orchestration ready**: multi-stage, non-root `Dockerfile`; parametrized Kubernetes manifests, no secrets or registry hardcoded.
 - **`/healthz` endpoint**: checks live connectivity to the active database backend, used by K8s readiness/liveness probes.
 
@@ -107,7 +107,7 @@ Full reference: [`k8s/all-in-one/README.md`](k8s/all-in-one/README.md).
 
 ## Local Development
 
-Prerequisites: Node.js ≥ 18 (developed against Node 22), npm ≥ 9, and a reachable database (PostgreSQL by default, or MongoDB with `DB_DRIVER=mongo`) — e.g. `docker compose up pacman-postgres`. `npm test` (Mongo path) needs none of that: `mongodb-memory-server` runs its own throwaway binary.
+Prerequisites: Node.js ≥ 22, npm ≥ 9, and a reachable database (PostgreSQL by default, or MongoDB with `DB_DRIVER=mongo`), e.g. `docker compose up pacman-postgres`. `npm test` (Mongo path) needs none of that: `mongodb-memory-server` runs its own throwaway binary.
 
 ```bash
 npm install
@@ -169,7 +169,7 @@ Docker Compose users can run the same driver in an ephemeral container instead, 
 
 GitHub Actions workflows live in `.github/workflows`. Full details in [`.github/workflows/README.md`](.github/workflows/README.md).
 
-- `ci.yml`: lint → tests (Node 18/20 matrix) → build, on pushes to `master`/`modernize` and pull requests. Verification only.
+- `ci.yml`: lint → tests (Node 22/24 matrix) → build, on pushes to `master`/`modernize` and pull requests. Verification only.
 - `release.yml`: on version tags (`v*`) or manual dispatch, same gate plus `npm pack` with a GitHub Release, and (tag push only) publishing the image to GHCR (`ghcr.io/<owner>/pacman:<tag>`).
 
 ## Project Structure Highlights

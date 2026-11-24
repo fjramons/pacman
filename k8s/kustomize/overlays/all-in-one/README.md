@@ -1,4 +1,4 @@
-# All-in-one (single cluster, bundled PostgreSQL) — Kustomize mode
+# All-in-one (single cluster, bundled PostgreSQL): Kustomize mode
 
 Kustomize equivalent of `k8s/all-in-one/`, for anyone with just one cluster. Not a mirror of the real deployment: no persistent storage (`emptyDir`), no external database.
 

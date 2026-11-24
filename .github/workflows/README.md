@@ -4,7 +4,7 @@ Two workflows, cleanly separated by what triggers them: a commit runs CI, a vers
 
 ## `ci.yml`, every commit
 
-Triggers on push to `master`/`modernize` and on pull requests. Runs lint → test (Node 18.x/20.x matrix) → build. Verification only, nothing gets published.
+Triggers on push to `master`/`modernize` and on pull requests. Runs lint → test (Node 22.x/24.x matrix) → build. Verification only, nothing gets published.
 
 ## `release.yml`, only on a version tag
 

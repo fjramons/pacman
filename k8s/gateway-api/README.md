@@ -10,6 +10,6 @@ Prepares the ground for exposing the app through [Gateway API](https://gateway-a
 GATEWAY_NAME=... GATEWAY_NAMESPACE=... envsubst < k8s/gateway-api/httproute.yaml | kubectl apply -f -
 ```
 
-In the local `kind_cluster --name app --expose-mode gateway-api` environment: `GATEWAY_NAME=app-gw GATEWAY_NAMESPACE=default`.
+In the local `saas cluster create --name app --expose-mode gateway-api` environment: `GATEWAY_NAME=app-gw GATEWAY_NAMESPACE=default`.
 
 Not verified against a real production cluster's own Gateway API setup: confirm the actual name/namespace there before relying on this manifest outside local testing.
